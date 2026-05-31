@@ -12,7 +12,6 @@ from pypdf import PdfReader
 ROOT = Path(
     r"C:\Users\Windows 11\PycharmProjects\PythonProject\Learn-German\experiment\scripts"
 )
-USER_INPUT = "dark_s1_ep1.pdf"
 START_PAGE = 4
 STOPWORDS_FILE = "german_stopwords.txt"
 
@@ -24,7 +23,7 @@ nlp = spacy.load("de_core_news_md")
 nest_asyncio.apply()
 
 
-def get_available_pdfs(root: Path) -> list[str]:
+def user_input(root: Path) -> str:
     """
     Get all PDF filenames in the root directory and subdirectories.
 
@@ -34,7 +33,14 @@ def get_available_pdfs(root: Path) -> list[str]:
     Returns:
         List of PDF filenames.
     """
-    return [file.name for file in root.glob("**/*.pdf")]
+    option = st.selectbox(
+        "Select the episode you want to learn from:",
+        [file.name for file in root.glob("**/*.pdf")],
+        index=None,
+        placeholder="Select episode...",
+    )
+
+    return option
 
 
 def extract_pdf_text(
@@ -242,19 +248,22 @@ def add_translation_column(
 
 
 def main() -> None:
+
     """
     Main workflow for extracting, cleaning,
     lemmatizing, and translating German text.
     """
-    # available_episodes = get_available_pdfs(ROOT)
-    # print(f"Available PDFs: {available_episodes}")
+    selected_pdf = user_input(ROOT)
+
+    if selected_pdf is None:
+        st.info("Please select a PDF file.")
+        st.stop()
 
     text = extract_pdf_text(
         root=ROOT,
-        pdf_name=USER_INPUT,
+        pdf_name=selected_pdf,
         start_page=START_PAGE,
     )
-
     cleaned_text = clean_text(text)
 
     stopwords = load_stopwords(STOPWORDS_FILE)
