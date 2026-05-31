@@ -1,5 +1,6 @@
 from pathlib import Path
 import asyncio
+import streamlit as st
 
 import nest_asyncio
 import pandas as pd
@@ -48,7 +49,7 @@ def extract_pdf_text(
         root: Root directory containing the PDF.
         pdf_name: Name of the PDF file.
         start_page: Page number to start extraction from (1-indexed).
-
+-
     Returns:
         Extracted text as a single string.
     """
@@ -245,8 +246,8 @@ def main() -> None:
     Main workflow for extracting, cleaning,
     lemmatizing, and translating German text.
     """
-    available_episodes = get_available_pdfs(ROOT)
-    print(f"Available PDFs: {available_episodes}")
+    # available_episodes = get_available_pdfs(ROOT)
+    # print(f"Available PDFs: {available_episodes}")
 
     text = extract_pdf_text(
         root=ROOT,
@@ -269,7 +270,20 @@ def main() -> None:
 
     data = add_translation_column(data)
 
-    print(data)
+    st.title("Select words that seem unfamiliar to you:")
+    data["selected"] = False
+    edited_df = st.data_editor(
+        data,
+        column_config={
+            "selected": st.column_config.CheckboxColumn("Select")
+        },
+        disabled=["German", "Lemmatized_german", "English"],
+        hide_index=True
+    )
+
+    df_selected = edited_df[edited_df["selected"]]
+    st.write("Selected words to learn:")
+    st.dataframe(df_selected.drop(columns=["selected"]))
 
 
 if __name__ == "__main__":
