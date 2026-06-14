@@ -8,6 +8,30 @@ import spacy
 from googletrans import Translator
 from pypdf import PdfReader
 
+import re
+import base64
+
+
+def get_base64(file_path):
+    with open(file_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+img = get_base64("pic.jpg")
+
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{img}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 ROOT = Path(
     r"C:\Users\Windows 11\PycharmProjects\PythonProject\Learn-German\experiment\scripts"
@@ -19,8 +43,13 @@ STOPWORDS_FILE = "german_stopwords.txt"
 # Load spaCy model once
 nlp = spacy.load("de_core_news_md")
 
-# Allow nested event loops (useful in notebooks / PyCharm)
+# Allow nested event loops
 nest_asyncio.apply()
+
+
+def extract_episode_number(path):
+    match = re.search(r"E(\d+)", path.name)
+    return int(match.group(1)) if match else 0
 
 
 def user_input(root: Path) -> str:
@@ -33,9 +62,18 @@ def user_input(root: Path) -> str:
     Returns:
         List of PDF filenames.
     """
+    st.markdown(
+        "<h2>Select the episode you want to learn from:</h2>",
+        unsafe_allow_html=True
+    )
+    pdf_files = sorted(
+        list(root.glob("**/*.pdf")),
+        key=extract_episode_number
+    )
     option = st.selectbox(
-        "Select the episode you want to learn from:",
-        [file.name for file in root.glob("**/*.pdf")],
+        "",
+        pdf_files,
+        format_func=lambda p: p.name,
         index=None,
         placeholder="Select episode...",
     )
@@ -126,29 +164,24 @@ def remove_stopwords(text: str, stopwords: set[str]) -> list[str]:
         List of filtered words.
     """
     return [
-        word
-        for word in text.lower().split()
-        if word not in stopwords
+        word for word in text.lower().split()
+        if word not in stopwords and len(word) >= 3  # add this
     ]
 
 
 def get_unique_words(words: list[str]) -> pd.DataFrame:
     """
-    Convert unique words into a DataFrame.
+    Get unique words from a list and return as DataFrame.
 
     Args:
         words: List of words.
 
     Returns:
-        DataFrame with unique German words.
+        DataFrame with unique words.
     """
-    unique_words = pd.unique(words)
+    unique_words = sorted(set(words))
 
-    return pd.DataFrame(
-        unique_words,
-        columns=["German"]
-    )
-
+    return pd.DataFrame(unique_words, columns=["German"])
 
 def lemmatize_word(word: str) -> str:
     """
@@ -278,8 +311,11 @@ def main() -> None:
     data = add_lemmatized_column(data)
 
     data = add_translation_column(data)
+    st.markdown(
+        "<h2>Select words that seem unfamiliar to you:</h2>",
+        unsafe_allow_html=True
+    )
 
-    st.title("Select words that seem unfamiliar to you:")
     data["selected"] = False
     edited_df = st.data_editor(
         data,
