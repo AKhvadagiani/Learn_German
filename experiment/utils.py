@@ -333,3 +333,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# streamlit run utils.py - to run the app
